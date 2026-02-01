@@ -1,0 +1,63 @@
+﻿{
+  "window": {
+    "width": 920,
+    "height": 720,
+    "title": "Arkanoid",
+    "vsync": true
+  },
+  "ui": {
+    "font": "fonts/arial.ttf"
+  },
+  "colors": {
+    "background": "#1E1E28",
+    "paddle": [230, 230, 230],
+    "ball": "#FFD700"
+  },
+  "game": {
+    "lives": 3,
+    "scorePerBrick": 100
+  },
+  "paddle": {
+    "width": 120.0,
+    "height": 18.0,
+    "speed": 540.0,
+    "bottomMargin": 50.0
+  },
+  "ball": {
+    "radius": 8.0,
+    "velocity": { "x": 220.0, "y": -260.0 }
+  },
+  "effects": {
+    "break": {
+      "radius": 10.0,
+      "duration": 0.25
+    }
+  },
+  "powerups": {
+    "enabled": true,
+    "dropChance": 0.15,
+    "fallSpeed": 140.0,
+    "size": { "x": 22.0, "y": 14.0 },
+    "color": [120, 255, 255],
+    "maxOnScreen": 6,
+    "multiball": {
+      "extraBalls": 2
+    }
+  },
+  "level": {
+    "files": [
+      "levels/level1.txt",
+      "levels/level2.txt",
+      "levels/level3.txt"
+    ],
+    "margins": { "side": 40.0, "top": 8.0 },
+    "padding": 6.0,
+    "brickHeight": 22.0,
+    "colors": {
+      "1": [120, 200, 255],
+      "2": [120, 255, 160],
+      "3": [255, 180, 120],
+      "B": [120, 200, 255]
+    }
+  }
+}
