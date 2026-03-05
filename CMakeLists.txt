@@ -1,7 +1,7 @@
 ﻿cmake_minimum_required(VERSION 3.16)
 project(ProyectoFinalJuanIbargoitia)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
@@ -12,13 +12,6 @@ FetchContent_Declare(
         GIT_TAG 2.6.x
 )
 FetchContent_MakeAvailable(SFML)
-
-FetchContent_Declare(
-        JSON
-        GIT_REPOSITORY https://github.com/nlohmann/json.git
-        GIT_TAG v3.11.3
-)
-FetchContent_MakeAvailable(JSON)
 
 add_executable(ProyectoFinalJuanIbargoitia
         src/main.cpp
@@ -38,7 +31,6 @@ target_link_libraries(ProyectoFinalJuanIbargoitia PRIVATE
         sfml-graphics
         sfml-window
         sfml-system
-        nlohmann_json::nlohmann_json
 )
 
 if (WIN32)

@@ -1,5 +1,5 @@
 ﻿#include "UI.hpp"
-#include <sstream>
+#include <cstdio>
 
 // Loads a font from file, tries assets/ fallback if needed
 bool UI::loadFont(const std::string& fontPath)
@@ -29,10 +29,9 @@ sf::Text UI::makeText(unsigned int size, sf::Color color) const
 	return t;
 }
 
-// Draws text centered at (x, y)
-void UI::drawCentered(sf::RenderTarget& rt, sf::Text& t, float x, float y)
+void UI::drawText(sf::RenderTarget& rt, sf::Text& t, float x, float y)
 {
-	auto b = t.getLocalBounds();
+	sf::FloatRect b = t.getLocalBounds();
 	t.setOrigin(b.left + b.width / 2.f, b.top + b.height / 2.f);
 	t.setPosition(x, y);
 	rt.draw(t);
@@ -41,10 +40,13 @@ void UI::drawCentered(sf::RenderTarget& rt, sf::Text& t, float x, float y)
 // Draws the HUD with score and lives
 void UI::drawHud(sf::RenderTarget& rt, int score, int lives) const
 {
-	auto t = makeText(18, sf::Color::White);
-	std::ostringstream oss;
-	oss << "Score: " << score << "   Lives: " << lives;
-	t.setString(oss.str());
+	sf::Text t = makeText(18, sf::Color::White);
+
+	char text[128];
+	std::snprintf(text, sizeof(text), "Score: %d   Lives: %d", score, lives);
+	text[sizeof(text) - 1] = '\0';
+
+	t.setString(text);
 	t.setPosition(12.f, 8.f);
 	rt.draw(t);
 }
@@ -52,12 +54,12 @@ void UI::drawHud(sf::RenderTarget& rt, int score, int lives) const
 // Draws the main menu, win, and game over screens
 void UI::drawScreen(sf::RenderTarget& rt, ScreenState state) const
 {
-	const auto size = rt.getSize();
-	const auto w = static_cast<float>(size.x);
-	const auto h = static_cast<float>(size.y);
+	const sf::Vector2u size = rt.getSize();
+	const float w = static_cast<float>(size.x);
+	const float h = static_cast<float>(size.y);
 
-	auto title = makeText(52, sf::Color::White);
-	auto msg = makeText(22, sf::Color(220, 220, 220));
+	sf::Text title = makeText(52, sf::Color::White);
+	sf::Text msg = makeText(22, sf::Color(220, 220, 220));
 
 	switch (state)
 	{
@@ -66,8 +68,8 @@ void UI::drawScreen(sf::RenderTarget& rt, ScreenState state) const
 			{
 				title.setString("ARKANOID");
 				msg.setString("Press ENTER to Start");
-				drawCentered(rt, title, w * 0.5f, h * 0.38f);
-				drawCentered(rt, msg, w * 0.5f, h * 0.55f);
+				drawText(rt, title, w * 0.5f, h * 0.38f);
+				drawText(rt, msg, w * 0.5f, h * 0.55f);
 				return;
 			}
 		case ScreenState::GameOver:
@@ -75,8 +77,8 @@ void UI::drawScreen(sf::RenderTarget& rt, ScreenState state) const
 			{
 				title.setString(state == ScreenState::GameOver ? "Game Over" : "You Win!");
 				msg.setString("Press ENTER to Restart\nPress ESC to return to Menu");
-				drawCentered(rt, title, w * 0.5f, h * 0.40f);
-				drawCentered(rt, msg, w * 0.5f, h * 0.60f);
+				drawText(rt, title, w * 0.5f, h * 0.40f);
+				drawText(rt, msg, w * 0.5f, h * 0.60f);
 				break;
 			}
 	}

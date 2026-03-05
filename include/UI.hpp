@@ -4,7 +4,13 @@
 #include <string>
 
 // Represents the current screen or game state
-enum class ScreenState { Menu, Playing, Win, GameOver };
+enum ScreenState
+{
+	Menu,
+	Playing,
+	Win,
+	GameOver
+};
 
 // Handles UI rendering and HUD for the game
 class UI
@@ -24,5 +30,5 @@ private:
 	sf::Text makeText(unsigned int size, sf::Color color) const;
 
 	// Draws text centered at (x, y)
-	static void drawCentered(sf::RenderTarget& rt, sf::Text& t, float x, float y);
+	static void drawText(sf::RenderTarget& rt, sf::Text& t, float x, float y);
 };

@@ -1,225 +1,234 @@
 ﻿#include "Collision.hpp"
-#include <cmath>
-#include <algorithm>
 
-namespace Collision
+bool Collision::circleRectHitBasic(sf::Vector2f center, float radius, const sf::FloatRect& rb, sf::Vector2f& pushOut)
 {
-	static float dot(sf::Vector2f a, sf::Vector2f b)
-	{
-		return a.x * b.x + a.y * b.y;
-	}
+    float closestX = center.x;
+    if (closestX < rb.left) closestX = rb.left;
+    if (closestX > rb.left + rb.width) closestX = rb.left + rb.width;
 
-	static sf::Vector2f normalize(sf::Vector2f v)
-	{
-		float len = std::sqrt(v.x * v.x + v.y * v.y);
+    float closestY = center.y;
+    if (closestY < rb.top) closestY = rb.top;
+    if (closestY > rb.top + rb.height) closestY = rb.top + rb.height;
 
-		if (len <= 0.00001f)
-			return {0.f, 0.f};
+    const float dx = center.x - closestX;
+    const float dy = center.y - closestY;
+    const float dist2 = dx * dx + dy * dy;
+    if (dist2 > radius * radius) return false;
 
-		return {v.x / len, v.y / len};
-	}
+    const float adx = (dx < 0.f) ? -dx : dx;
+    const float ady = (dy < 0.f) ? -dy : dy;
 
-	// Checks collision between a circle and a rectangle
-	static HitResult circleRectHit(const sf::CircleShape& c, const sf::RectangleShape& r)
-	{
-		const auto center = c.getPosition();
-		const float radius = c.getRadius();
-		const auto rb = r.getGlobalBounds();
+    // Caso especial: centro dentro del rectángulo (dx=dy=0)
+    if (adx < 0.0001f && ady < 0.0001f)
+    {
+        const float leftPen   = (center.x - rb.left);
+        const float rightPen  = ((rb.left + rb.width) - center.x);
+        const float topPen    = (center.y - rb.top);
+        const float bottomPen = ((rb.top + rb.height) - center.y);
 
-		const float closestX = std::max(rb.left, std::min(center.x, rb.left + rb.width));
-		const float closestY = std::max(rb.top, std::min(center.y, rb.top + rb.height));
+        float best = leftPen;
+        pushOut = sf::Vector2f(-1.f, 0.f);
 
-		sf::Vector2f diff{center.x - closestX, center.y - closestY};
-		const float dist2 = diff.x * diff.x + diff.y * diff.y;
+        if (rightPen < best)  { best = rightPen;  pushOut = sf::Vector2f( 1.f, 0.f); }
+        if (topPen < best)    { best = topPen;    pushOut = sf::Vector2f( 0.f,-1.f); }
+        if (bottomPen < best) {                   pushOut = sf::Vector2f( 0.f, 1.f); }
 
-		if (dist2 > radius * radius) return {};
+        return true;
+    }
 
-		// Special case: center inside rectangle
-		if (std::abs(diff.x) < 0.0001f && std::abs(diff.y) < 0.0001f)
-		{
-			const float leftPen = std::abs(center.x - rb.left);
-			const float rightPen = std::abs((rb.left + rb.width) - center.x);
-			const float topPen = std::abs(center.y - rb.top);
-			const float bottomPen = std::abs((rb.top + rb.height) - center.y);
+    if (adx > ady)
+    {
+        pushOut = sf::Vector2f((dx > 0.f) ? 1.f : -1.f, 0.f);
+    }
+    else
+    {
+        pushOut = sf::Vector2f(0.f, (dy > 0.f) ? 1.f : -1.f);
+    }
 
-			float minPen = leftPen;
+    return true;
+}
 
-			sf::Vector2f n{-1.f, 0.f};
+bool Collision::rectRectHit(const sf::RectangleShape& a, const sf::RectangleShape& b)
+{
+    return a.getGlobalBounds().intersects(b.getGlobalBounds());
+}
 
-			if (rightPen < minPen)
-			{
-				minPen = rightPen;
-				n = {1.f, 0.f};
-			}
+sf::Uint8 Collision::clampByte(int v)
+{
+    if (v < 0) v = 0;
+    if (v > 255) v = 255;
+    return static_cast<sf::Uint8>(v);
+}
 
-			if (topPen < minPen)
-			{
-				minPen = topPen;
-				n = {0.f, -1.f};
-			}
+sf::Color Collision::darker(sf::Color c, float factor)
+{
+    if (factor < 0.f) factor = 0.f;
+    if (factor > 1.f) factor = 1.f;
 
-			if (bottomPen < minPen)
-			{
-				n = {0.f, 1.f};
-			}
+    int r = static_cast<int>(static_cast<float>(c.r) * factor);
+    int g = static_cast<int>(static_cast<float>(c.g) * factor);
+    int b = static_cast<int>(static_cast<float>(c.b) * factor);
 
-			return {true, n};
-		}
+    c.r = clampByte(r);
+    c.g = clampByte(g);
+    c.b = clampByte(b);
+    return c;
+}
 
-		return {true, normalize(diff)};
-	}
 
-	// Checks collision between two rectangles
-	static bool rectRectHit(const sf::RectangleShape& a, const sf::RectangleShape& b)
-	{
-		return a.getGlobalBounds().intersects(b.getGlobalBounds());
-	}
+void Collision::removeDeadBricks(std::vector<Entities::Brick>& bricks)
+{
+    std::vector<Entities::Brick> alive;
 
-	// Reflects a vector v over a normal
-	static sf::Vector2f reflect(sf::Vector2f v, sf::Vector2f normal)
-	{
-		normal = normalize(normal);
-		return v - 2.f * dot(v, normal) * normal;
-	}
+    for (std::size_t i = 0; i < bricks.size(); ++i)
+    {
+        if (bricks[i].alive)
+            alive.push_back(bricks[i]);
+    }
 
-	// Keeps the paddle inside the window bounds
-	void keepPaddleInBounds(Entities::Paddle& paddle, float windowWidth)
-	{
-		auto b = paddle.shape.getGlobalBounds();
+    bricks = alive;
+}
 
-		if (b.left < 0.f)
-			paddle.shape.setPosition(b.width / 2.f, paddle.shape.getPosition().y);
+void Collision::keepPaddleInBounds(Entities::Paddle& paddle, float windowWidth)
+{
+    sf::FloatRect b = paddle.shape.getGlobalBounds();
 
-		if (b.left + b.width > windowWidth)
-			paddle.shape.setPosition(windowWidth - b.width / 2.f, paddle.shape.getPosition().y);
-	}
+    if (b.left < 0.f)
+        paddle.shape.setPosition(b.width / 2.f, paddle.shape.getPosition().y);
 
-	// Returns a darker color by a factor
-	static sf::Color darker(sf::Color c, float factor)
-	{
-		factor = std::clamp(factor, 0.f, 1.f);
+    if (b.left + b.width > windowWidth)
+        paddle.shape.setPosition(windowWidth - b.width / 2.f, paddle.shape.getPosition().y);
+}
 
-		auto mul = [&](sf::Uint8 v) -> sf::Uint8
-		{
-			const int x = static_cast<int>(static_cast<float>(v) * factor);
-			return static_cast<sf::Uint8>(std::clamp(x, 0, 255));
-		};
+void Collision::stepBalls(std::vector<Entities::Ball>& balls, float dt, float windowWidth, float windowHeight, float hudHeight, const Entities::Paddle& paddle, std::vector<Entities::Brick>& bricks, StepResult& out)
+{
+    for (std::size_t i = 0; i < balls.size(); )
+    {
+        Entities::Ball& ball = balls[i];
+        ball.shape.move(ball.velocity * dt);
 
-		c.r = mul(c.r);
-		c.g = mul(c.g);
-		c.b = mul(c.b);
+        const float r = ball.shape.getRadius();
+        sf::Vector2f pos = ball.shape.getPosition();
 
-		return c;
-	}
+        // Paredes
+        if (pos.x - r < 0.f)
+        {
+            pos.x = r;
+            if (ball.velocity.x < 0.f) ball.velocity.x = -ball.velocity.x;
+        }
+        if (pos.x + r > windowWidth)
+        {
+            pos.x = windowWidth - r;
+            if (ball.velocity.x > 0.f) ball.velocity.x = -ball.velocity.x;
+        }
+        if (pos.y - r < hudHeight)
+        {
+            pos.y = hudHeight + r;
+            if (ball.velocity.y < 0.f) ball.velocity.y = -ball.velocity.y;
+        }
 
-	// Updates all balls, handles wall, paddle, and brick collisions
-	void stepBalls(ObjectPool<Entities::Ball>& balls, float dt, float windowWidth, float windowHeight, float hudHeight, const Entities::Paddle& paddle, std::vector<Entities::Brick>& bricks, StepResult& out)
-	{
-		balls.forEachActive([&](Entities::Ball& ball, ObjectPool<Entities::Ball>::Handle hBall)
-		{
-			ball.shape.move(ball.velocity * dt);
-			const float r = ball.shape.getRadius();
-			auto pos = ball.shape.getPosition();
+        // Se cae
+        if (pos.y - r > windowHeight)
+        {
+            out.ballLost = true;
+            balls[i] = balls.back();
+            balls.pop_back();
+            continue;
+        }
 
-			// Wall collisions
-			if (pos.x - r < 0.f)
-			{
-				pos.x = r;
-				ball.velocity.x = std::abs(ball.velocity.x);
-			}
+        ball.shape.setPosition(pos);
 
-			if (pos.x + r > windowWidth)
-			{
-				pos.x = windowWidth - r;
-				ball.velocity.x = -std::abs(ball.velocity.x);
-			}
+        // Paddle
+        const sf::FloatRect pb = paddle.shape.getGlobalBounds();
+        sf::Vector2f push;
 
-			if (pos.y - r < hudHeight)
-			{
-				pos.y = hudHeight + r;
-				ball.velocity.y = std::abs(ball.velocity.y);
-			}
+        if (circleRectHitBasic(ball.shape.getPosition(), r, pb, push) && ball.velocity.y > 0.f)
+        {
+            if (push.x != 0.f) ball.velocity.x = -ball.velocity.x;
+            if (push.y != 0.f) ball.velocity.y = -ball.velocity.y;
 
-			if (pos.y - r > windowHeight)
-			{
-				out.ballLost = true;
-				balls.release(hBall);
-				return;
-			}
+            // Aseguramos que sale hacia arriba (típico Arkanoid)
+            if (ball.velocity.y > 0.f) ball.velocity.y = -ball.velocity.y;
 
-			ball.shape.setPosition(pos);
+            // Efecto por zona de golpe
+            const float centerX = pb.left + pb.width / 2.f;
+            float rel = (ball.shape.getPosition().x - centerX);
+            rel = rel / (pb.width / 2.f);
+            ball.velocity.x += rel * 60.f;
 
-			// Paddle collision
-			{
-				auto hit = circleRectHit(ball.shape, paddle.shape);
+            ball.shape.move(ball.velocity * dt);
+        }
 
-				if (hit.hit && ball.velocity.y > 0.f)
-				{
-					ball.velocity = reflect(ball.velocity, hit.normal);
+        // Bricks
+        for (std::size_t b = 0; b < bricks.size(); ++b)
+        {
+            Entities::Brick& br = bricks[b];
+            if (!br.alive) continue;
 
-					const auto pb = paddle.shape.getGlobalBounds();
-					const float dx = (ball.shape.getPosition().x - (pb.left + pb.width / 2.f)) / (pb.width / 2.f);
+            sf::Vector2f pushBrick;
+            if (!circleRectHitBasic(ball.shape.getPosition(), r, br.shape.getGlobalBounds(), pushBrick))
+                continue;
 
-					ball.velocity.x += dx * 60.f;
-					ball.velocity.y = -std::abs(ball.velocity.y);
-					ball.shape.move(ball.velocity * dt);
-				}
-			}
+            br.hp = br.hp - 1;
+            if (br.hp < 0) br.hp = 0;
 
-			// Brick collisions
-			for (auto& br : bricks)
-			{
-				if (!br.alive) continue;
+            if (br.hp > 0)
+            {
+                br.shape.setFillColor(darker(br.shape.getFillColor(), 0.85f));
+            }
 
-				auto hit = circleRectHit(ball.shape, br.shape);
+            if (br.hp <= 0)
+            {
+                const sf::Vector2f breakPos = br.shape.getPosition();
+                const sf::Color breakColor = br.shape.getFillColor();
 
-				if (!hit.hit) continue;
+                br.alive = false;
+                out.bricksDestroyed++;
 
-				br.hp = std::max(0, br.hp - 1);
+                out.brokeBrick = true;
+                out.brokePos = breakPos;
+                out.brokeColor = breakColor;
+            }
 
-				if (br.hp > 0)
-				{
-					br.shape.setFillColor(darker(br.shape.getFillColor(), 0.85f));
-				}
+            if (pushBrick.x != 0.f) ball.velocity.x = -ball.velocity.x;
+            if (pushBrick.y != 0.f) ball.velocity.y = -ball.velocity.y;
 
-				if (br.hp <= 0)
-				{
-					const sf::Vector2f breakPos = br.shape.getPosition();
-					const sf::Color breakColor = br.shape.getFillColor();
-					br.alive = false;
-					out.bricksDestroyed++;
-					out.breakEvents.push_back({breakPos, breakColor});
-				}
+            ball.shape.move(ball.velocity * dt);
+            break;
+        }
 
-				ball.velocity = reflect(ball.velocity, hit.normal);
-				ball.shape.move(ball.velocity * dt);
-				break;
-			}
-		});
+        ++i;
+    }
 
-		// Remove destroyed bricks
-		bricks.erase(std::remove_if(bricks.begin(), bricks.end(), [](const Entities::Brick& b) { return !b.alive; }), bricks.end());
-	}
+    removeDeadBricks(bricks);
+}
 
-	// Updates all power-ups and handles collection
-	void stepPowerUps(ObjectPool<Entities::PowerUp>& powerUps, float dt, float windowHeight, const Entities::Paddle& paddle, StepResult& out)
-	{
-		powerUps.forEachActive([&](Entities::PowerUp& p, ObjectPool<Entities::PowerUp>::Handle h)
-		{
-			p.shape.move(p.velocity * dt);
-			const auto b = p.shape.getGlobalBounds();
+void Collision::stepPowerUps(std::vector<Entities::PowerUp>& powerUps, float dt, float windowHeight, const Entities::Paddle& paddle, StepResult& out)
+{
+    for (std::size_t i = 0; i < powerUps.size(); )
+    {
+        Entities::PowerUp& p = powerUps[i];
+        p.shape.move(p.velocity * dt);
 
-			if (b.top > windowHeight)
-			{
-				powerUps.release(h);
-				return;
-			}
+        const sf::FloatRect b = p.shape.getGlobalBounds();
 
-			if (rectRectHit(p.shape, paddle.shape))
-			{
-				out.powerUpCollectEvents.push_back({p.type, p.shape.getPosition()});
-				powerUps.release(h);
-			}
-		});
-	}
+        if (b.top > windowHeight)
+        {
+            powerUps[i] = powerUps.back();
+            powerUps.pop_back();
+            continue;
+        }
+
+        if (rectRectHit(p.shape, paddle.shape))
+        {
+            out.collectedPowerUp = true;
+            out.collectedPos = p.shape.getPosition();
+
+            powerUps[i] = powerUps.back();
+            powerUps.pop_back();
+            continue;
+        }
+
+        ++i;
+    }
 }

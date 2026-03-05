@@ -12,6 +12,7 @@ class Level
 public:
 	explicit Level(std::string levelPath, const Config* config = nullptr);
 
+	// Loads bricks from the level file and positions them
 	std::vector<Entities::Brick> loadBricks(float windowWidth, float hudHeight) const;
 
 	// Checks if all bricks are destroyed
@@ -22,18 +23,8 @@ private:
 	const Config* m_config = nullptr;
 
 	// Returns brick HP based on level character
-	int brickHpFor(char c) const
-	{
-		switch (c)
-		{
-			case '1': return 2;
-			case '2': return 3;
-			case '3': return 4;
-			case 'B': return 1;
-			default: return 1;
-		}
-	}
+	int brickHpFor(char c) const;
 
-	// Returns brick color based on level character
+	// Returns the color for a brick type
 	sf::Color brickColorFor(char c) const;
 };

@@ -1,11 +1,23 @@
 ﻿#include "Level.hpp"
-#include <algorithm>
 #include <fstream>
 
 // Loads a level from file and prepares brick layout
-Level::Level(std::string levelPath, const Config* config): m_levelPath(std::move(levelPath)), m_config(config) { }
+Level::Level(std::string levelPath, const Config* config): m_levelPath(levelPath), m_config(config) { }
 
-// Returns the color for a brick type, using config if available
+// Returns brick HP based on level character
+int Level::brickHpFor(char c) const
+{
+	switch (c)
+	{
+		case '1': return 2;
+		case '2': return 3;
+		case '3': return 4;
+		case 'B': return 1;
+		default:  return 1;
+	}
+}
+
+// Returns the color for a brick type
 sf::Color Level::brickColorFor(char c) const
 {
 	sf::Color def;
@@ -46,7 +58,11 @@ std::vector<Entities::Brick> Level::loadBricks(float windowWidth, float hudHeigh
 	if (lines.empty()) return {};
 
 	std::size_t cols = 0;
-	for (const auto& l : lines) cols = std::max(cols, l.size());
+	for (std::size_t i = 0; i < lines.size(); ++i)
+	{
+		const std::size_t len = lines[i].size();
+		if (len > cols) cols = len;
+	}
 	const std::size_t rows = lines.size();
 
 	float sideMargin = 40.f;
@@ -62,8 +78,10 @@ std::vector<Entities::Brick> Level::loadBricks(float windowWidth, float hudHeigh
 		brickHeight = m_config->getFloat("level.brickHeight", brickHeight);
 	}
 
-	const float usableW = std::max(10.f, windowWidth - 2.f * sideMargin);
-	const auto colsF = static_cast<float>(cols);
+	float usableW = windowWidth - 2.f * sideMargin;
+	if (usableW < 10.f) usableW = 10.f;
+
+	const float colsF = static_cast<float>(cols);
 	const float brickW = (usableW - padding * (colsF - 1.f)) / colsF;
 
 	std::vector<Entities::Brick> bricks;

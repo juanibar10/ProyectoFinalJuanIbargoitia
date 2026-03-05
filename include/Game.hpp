@@ -6,7 +6,6 @@
 #include "Level.hpp"
 #include "UI.hpp"
 #include "Config.hpp"
-#include "ObjectPool.hpp"
 
 class Game
 {
@@ -37,13 +36,11 @@ private:
 
 	sf::Color m_bg{30, 30, 40};
 
-	Config m_config{"assets/config/game.json"};
+	Config m_config{"assets/config/game.txt"};
 
 	UI m_ui;
 
 	Level m_level;
-
-	std::vector<std::string> m_levelFiles;
 
 	std::size_t m_levelIndex = 0;
 
@@ -51,13 +48,13 @@ private:
 
 	Entities::Paddle m_paddle;
 
-	ObjectPool<Entities::Ball> m_balls;
+	std::vector<Entities::Ball> m_balls;
 
 	std::vector<Entities::Brick> m_bricks;
 
-	ObjectPool<Entities::BreakEffect> m_breakEffects;
+	std::vector<Entities::BreakEffect> m_breakEffects;
 
-	ObjectPool<Entities::PowerUp> m_powerUps;
+	std::vector<Entities::PowerUp> m_powerUps;
 
 	int m_score = 0;
 

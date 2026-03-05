@@ -1,60 +1,63 @@
 ﻿#include "Game.hpp"
 #include "Collision.hpp"
 
-#include <random>
+#include <cstdlib>
 
 // Main game logic and loop implementation
-Game::Game() : m_window(sf::VideoMode(920, 720), "Arkanoid"), m_level("", &m_config)
+Game::Game() : m_level("", &m_config)
 {
 	m_config.reload();
-	// Window and config setup
-	const int winW = m_config.getInt("window.width", 920);
-	const int winH = m_config.getInt("window.height", 720);
-	const std::string title = m_config.getString("window.title", "Arkanoid");
-	m_window.create(sf::VideoMode(static_cast<unsigned>(winW), static_cast<unsigned>(winH)), title);
-	m_window.setVerticalSyncEnabled(m_config.getBool("window.vsync", true));
+
+	unsigned winW = m_config.getInt("window.width", 920);
+	unsigned winH = m_config.getInt("window.height", 720);
+	std::string title = m_config.getString("window.title", "Arkanoid");
+
+	m_window.create(sf::VideoMode(winW, winH), title);
 
 	m_bg = m_config.getColor("colors.background", m_bg);
 
 	m_ui.loadFont(m_config.assetPath(m_config.getString("ui.font", "fonts/arial.ttf")));
 
-	{
-		m_levelFiles = m_config.getStringArray("level.files");
-		m_levelIndex = 0;
-	}
-
+	m_levelIndex = 0;
 	loadLevelByIndex(m_levelIndex);
 
-	const float w = static_cast<float>(m_window.getSize().x);
-	const float h = static_cast<float>(m_window.getSize().y);
+	float w = static_cast<float>(m_window.getSize().x);
+	float h = static_cast<float>(m_window.getSize().y);
 
-	const sf::Vector2f paddleSize
-	{
+	sf::Vector2f paddleSize(
 		m_config.getFloat("paddle.width", 120.f),
 		m_config.getFloat("paddle.height", 18.f)
-	};
+	);
 
-	const float paddleBottomMargin = m_config.getFloat("paddle.bottomMargin", 50.f);
-	const float paddleSpeed = m_config.getFloat("paddle.speed", 540.f);
-	const sf::Color paddleColor = m_config.getColor("colors.paddle", sf::Color(230, 230, 230));
+	float paddleBottomMargin = m_config.getFloat("paddle.bottomMargin", 50.f);
+	float paddleSpeed = m_config.getFloat("paddle.speed", 540.f);
+	sf::Color paddleColor = m_config.getColor("colors.paddle", sf::Color::White);
 
-	m_paddle = Entities::makePaddle(paddleSize, {w * 0.5f, h - paddleBottomMargin}, paddleSpeed, paddleColor);
+	m_paddle = Entities::makePaddle(paddleSize, sf::Vector2f(w * 0.5f, h - paddleBottomMargin), paddleSpeed, paddleColor);
 }
 
 // Loads a level by its index in the list
 void Game::loadLevelByIndex(std::size_t index)
 {
-	if (m_levelFiles.empty())
+	int levelCount = m_config.getInt("level.count", 1);
+	if (levelCount <= 0)
 	{
 		m_level = Level("", &m_config);
 		m_levelIndex = 0;
 		return;
 	}
 
-	if (index >= m_levelFiles.size()) index = 0;
+	if (index >= static_cast<std::size_t>(levelCount))
+		index = 0;
+
 	m_levelIndex = index;
 
-	const std::string rel = m_levelFiles[m_levelIndex];
+	std::string rel = "";
+	if (m_levelIndex == 0) rel = m_config.getString("level.file1", "");
+	else if (m_levelIndex == 1) rel = m_config.getString("level.file2", "");
+	else if (m_levelIndex == 2) rel = m_config.getString("level.file3", "");
+	else rel = m_config.getString("level.file1", "");
+
 	m_level = Level(m_config.assetPath(rel), &m_config);
 }
 
@@ -74,15 +77,16 @@ void Game::respawnBall()
 	m_balls.clear();
 
 	const float ballRadius = m_config.getFloat("ball.radius", 8.f);
-
 	const float offsetY = -(m_paddle.shape.getSize().y / 2.f + ballRadius + 2.f);
 	const sf::Vector2f ballPos = m_paddle.shape.getPosition() + sf::Vector2f(0.f, offsetY);
 
-	const sf::Vector2f ballVel = m_config.getVec2f("ball.velocity", {220.f, -260.f});
-	const sf::Color ballColor = m_config.getColor("colors.ball", sf::Color(255, 215, 0));
+	float vx = m_config.getFloat("ball.velX", 220.f);
+	float vy = m_config.getFloat("ball.velY", -260.f);
+	sf::Vector2f ballVel(vx, vy);
 
-	auto hBall = m_balls.acquire(Entities::makeBall(ballRadius, ballPos, ballVel, ballColor));
-	(void)hBall;
+	const sf::Color ballColor = m_config.getColor("colors.ball", sf::Color::Yellow);
+
+	m_balls.push_back(Entities::makeBall(ballRadius, ballPos, ballVel, ballColor));
 }
 
 // Main game loop
@@ -159,24 +163,20 @@ void Game::processEvents()
 
 		if (ev.type == sf::Event::KeyReleased)
 		{
-			if (ev.key.code == sf::Keyboard::Left)
-				m_moveLeft = false;
-
-			if (ev.key.code == sf::Keyboard::Right)
-				m_moveRight = false;
+			if (ev.key.code == sf::Keyboard::Left) m_moveLeft = false;
+			if (ev.key.code == sf::Keyboard::Right) m_moveRight = false;
 		}
 	}
 }
 
 // Returns true with a given probability (for power-up drops)
-static bool shouldDropPowerUp(float chance01)
+static bool shouldDropPowerUp(float chance)
 {
-	if (chance01 <= 0.f) return false;
-	if (chance01 >= 1.f) return true;
+	if (chance <= 0.f) return false;
+	if (chance >= 1.f) return true;
 
-	thread_local std::mt19937 rng{std::random_device{}()};
-	std::uniform_real_distribution dist(0.f, 1.f);
-	return dist(rng) < chance01;
+	int r = std::rand() % 100;
+	return r < (int)(chance * 100.f);
 }
 
 // Updates game state, handles movement, collisions, scoring, and power-ups
@@ -196,7 +196,6 @@ void Game::update(float dt)
 
 	Collision::StepResult step;
 	Collision::stepBalls(m_balls, dt, w, h, UI::hudHeight(), m_paddle, m_bricks, step);
-
 	Collision::stepPowerUps(m_powerUps, dt, h, m_paddle, step);
 
 	m_score += step.bricksDestroyed * m_config.getInt("game.scorePerBrick", 100);
@@ -207,75 +206,74 @@ void Game::update(float dt)
 	const bool powerupsEnabled = m_config.getBool("powerups.enabled", true);
 	const float dropChance = m_config.getFloat("powerups.dropChance", 0.15f);
 	const float fallSpeed = m_config.getFloat("powerups.fallSpeed", 140.f);
-	const sf::Vector2f puSize = m_config.getVec2f("powerups.size", {22.f, 14.f});
-	const sf::Color puColor = m_config.getColor("powerups.color", sf::Color(120, 255, 255));
+
+	float puW = m_config.getFloat("powerups.width", 22.f);
+	float puH = m_config.getFloat("powerups.height", 14.f);
+	sf::Vector2f puSize(puW, puH);
+
+	const sf::Color puColor = m_config.getColor("powerups.color", sf::Color::Cyan);
 	const int maxOnScreen = m_config.getInt("powerups.maxOnScreen", 6);
 
-	for (const auto& ev : step.breakEvents)
+	// Si se ha roto al menos un ladrillo este frame, generamos un efecto (usamos el último)
+	if (step.brokeBrick)
 	{
-		sf::Color color = ev.color;
+		sf::Color color = step.brokeColor;
 		if (color.a == 0) color = sf::Color::White;
 
-		auto hEffect = m_breakEffects.acquire();
-		m_breakEffects.get(hEffect).reset(ev.pos, color, breakRadius, breakDuration);
+		Entities::BreakEffect e;
+		e.reset(step.brokePos, color, breakRadius, breakDuration);
+		m_breakEffects.push_back(e);
 
 		if (powerupsEnabled && shouldDropPowerUp(dropChance) && maxOnScreen > 0)
 		{
-			int activeCount = 0;
-			m_powerUps.forEachActive([&](Entities::PowerUp&, ObjectPool<Entities::PowerUp>::Handle)
-			{
-				++activeCount;
-			});
-
+			int activeCount = static_cast<int>(m_powerUps.size());
 			if (activeCount < maxOnScreen)
 			{
-				auto hPU = m_powerUps.acquire();
-				m_powerUps.get(hPU).reset(ev.pos, puSize,{0.f, fallSpeed}, puColor, Entities::PowerUpType::MultiBall);
+				Entities::PowerUp p;
+				p.reset(step.brokePos, puSize, sf::Vector2f(0.f, fallSpeed), puColor);
+				m_powerUps.push_back(p);
 			}
 		}
 	}
 
 	Entities::updateBreakEffects(m_breakEffects, dt);
 
-	if (!step.powerUpCollectEvents.empty())
+
+	if (step.collectedPowerUp)
 	{
 		const int extraBalls = m_config.getInt("powerups.multiball.extraBalls", 2);
 		const float ballRadius = m_config.getFloat("ball.radius", 8.f);
-		const sf::Vector2f baseVel = m_config.getVec2f("ball.velocity", {220.f, -260.f});
-		const sf::Color ballColor = m_config.getColor("colors.ball", sf::Color(255, 215, 0));
+
+		float vx = m_config.getFloat("ball.velX", 220.f);
+		float vy = m_config.getFloat("ball.velY", -260.f);
+		sf::Vector2f baseVel(vx, vy);
+
+		const sf::Color ballColor = m_config.getColor("colors.ball", sf::Color::Yellow);
 
 		const float offsetY = -(m_paddle.shape.getSize().y / 2.f + ballRadius + 2.f);
 		const sf::Vector2f spawnPos = m_paddle.shape.getPosition() + sf::Vector2f(0.f, offsetY);
 
-		for (const auto& c : step.powerUpCollectEvents)
-		{
-			if (c.type == Entities::PowerUpType::MultiBall)
-			{
-				const int n = std::max(0, extraBalls);
-				for (int i = 0; i < n; ++i)
-				{
-					sf::Vector2f v = baseVel;
-					const float sign = (i % 2 == 0) ? 1.f : -1.f;
-					constexpr float spreadStep = 35.f;
-					const float tier = (static_cast<float>(i) * 0.5f) + 1.f;
-					const float spread = spreadStep * tier;
-					v.x += sign * spread;
-					if (v.y > 0.f) v.y = -v.y;
+		int n = extraBalls;
+		if (n < 0) n = 0;
 
-					auto hBall = m_balls.acquire(Entities::makeBall(ballRadius, spawnPos, v, ballColor));
-					(void)hBall;
-				}
-			}
+		for (int i = 0; i < n; ++i)
+		{
+			sf::Vector2f v = baseVel;
+
+			float sign = (i % 2 == 0) ? 1.f : -1.f;
+			float spreadStep = 35.f;
+			float tier = (static_cast<float>(i) * 0.5f) + 1.f;
+			float spread = spreadStep * tier;
+
+			v.x += sign * spread;
+			if (v.y > 0.f) v.y = -v.y;
+
+			m_balls.push_back(Entities::makeBall(ballRadius, spawnPos, v, ballColor));
 		}
 	}
 
-	bool anyBall = false;
-	m_balls.forEachActive([&](Entities::Ball&, ObjectPool<Entities::Ball>::Handle)
-	{
-		anyBall = true;
-	});
 
-	if (step.ballLost && !anyBall)
+	if (step.ballLost && m_balls.empty())
 	{
 		m_lives--;
 		if (m_lives <= 0)
@@ -291,7 +289,9 @@ void Game::update(float dt)
 
 	if (Level::isCleared(m_bricks))
 	{
-		if (!m_levelFiles.empty() && (m_levelIndex + 1) >= m_levelFiles.size())
+		int levelCount = m_config.getInt("level.count", 1);
+
+		if ((int)(m_levelIndex + 1) >= levelCount)
 		{
 			m_state = ScreenState::Win;
 			return;
@@ -300,6 +300,7 @@ void Game::update(float dt)
 		loadLevelByIndex(m_levelIndex + 1);
 		startRound();
 	}
+
 }
 
 // Renders the current game state and UI
@@ -311,18 +312,11 @@ void Game::render()
 	{
 		m_ui.drawHud(m_window, m_score, m_lives);
 
-		for (const auto& br : m_bricks) m_window.draw(br.shape);
+		for (std::size_t i = 0; i < m_bricks.size(); ++i) m_window.draw(m_bricks[i].shape);
 		m_window.draw(m_paddle.shape);
 
-		m_balls.forEachActive([&](const Entities::Ball& b, ObjectPool<Entities::Ball>::Handle)
-		{
-			m_window.draw(b.shape);
-		});
-
-		m_powerUps.forEachActive([&](const Entities::PowerUp& p, ObjectPool<Entities::PowerUp>::Handle)
-		{
-			m_window.draw(p.shape);
-		});
+		for (std::size_t i = 0; i < m_balls.size(); ++i) m_window.draw(m_balls[i].shape);
+		for (std::size_t i = 0; i < m_powerUps.size(); ++i) m_window.draw(m_powerUps[i].shape);
 
 		Entities::drawBreakEffects(m_window, m_breakEffects);
 	}

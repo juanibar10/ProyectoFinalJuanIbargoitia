@@ -1,0 +1,54 @@
+﻿window.width=920
+window.height=720
+window.title=Arkanoid
+
+ui.font=fonts/arial.ttf
+
+colors.ball=Yellow
+colors.background=Black
+colors.paddle=White
+
+paddle.width=120
+paddle.height=18
+paddle.bottomMargin=50
+paddle.speed=540
+
+ball.radius=8
+
+ball.velX=220
+ball.velY=-260
+
+game.lives=3
+game.scorePerBrick=100
+
+# Niveles
+level.count=3
+level.file1=levels/level1.txt
+level.file2=levels/level2.txt
+level.file3=levels/level3.txt
+
+
+level.margins.side=40
+level.margins.top=8
+level.padding=6
+level.brickHeight=22
+
+# Colores de bloques por tipo
+level.colors.1=Cyan
+level.colors.2=Green
+level.colors.3=Red
+level.colors.B=Cyan
+
+# Efectos
+effects.break.radius=10
+effects.break.duration=0.25
+
+# Powerups
+powerups.enabled=1
+powerups.dropChance=0.15
+powerups.fallSpeed=140
+powerups.width=22
+powerups.height=14
+powerups.color=Cyan
+powerups.maxOnScreen=6
+powerups.multiball.extraBalls=2
