@@ -1,7 +1,7 @@
 ﻿#include "UI.hpp"
 #include <cstdio>
 
-// Loads a font from file, tries assets/ fallback if needed
+// Loads a font from file
 bool UI::loadFont(const std::string& fontPath)
 {
 	if (m_font.loadFromFile(fontPath)) return true;

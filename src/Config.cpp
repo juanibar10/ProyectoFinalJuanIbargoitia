@@ -31,7 +31,6 @@ bool Config::reload()
         if (line.empty() || line[0] == '#')
             continue;
 
-        // Buscar '=' a mano (sin find / npos)
         std::size_t eq = line.size();
         for (std::size_t i = 0; i < line.size(); ++i)
         {

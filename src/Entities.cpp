@@ -1,6 +1,5 @@
 ﻿#include "Entities.hpp"
 
-// Crea e inicializa una Ball
 Entities::Ball Entities::makeBall(float radius, sf::Vector2f pos, sf::Vector2f vel, sf::Color color)
 {
     Ball b;
@@ -12,7 +11,6 @@ Entities::Ball Entities::makeBall(float radius, sf::Vector2f pos, sf::Vector2f v
     return b;
 }
 
-// Crea e inicializa un Paddle
 Entities::Paddle Entities::makePaddle(sf::Vector2f size, sf::Vector2f pos, float speed, sf::Color color)
 {
     Paddle p;
@@ -24,7 +22,6 @@ Entities::Paddle Entities::makePaddle(sf::Vector2f size, sf::Vector2f pos, float
     return p;
 }
 
-// Crea un Brick
 Entities::Brick Entities::makeBrick(sf::Vector2f size, sf::Vector2f pos, sf::Color color, int hp)
 {
     Brick br;
@@ -41,7 +38,6 @@ Entities::Brick Entities::makeBrick(sf::Vector2f size, sf::Vector2f pos, sf::Col
     return br;
 }
 
-// Crea un BreakEffect e inicializa
 Entities::BreakEffect Entities::makeBreakEffect(sf::Vector2f pos, sf::Color color, float radius, float durationSeconds)
 {
     BreakEffect e;
@@ -49,7 +45,6 @@ Entities::BreakEffect Entities::makeBreakEffect(sf::Vector2f pos, sf::Color colo
     return e;
 }
 
-// Crea un PowerUp e inicializa
 Entities::PowerUp Entities::makePowerUp(sf::Vector2f pos, sf::Vector2f size, sf::Vector2f vel, sf::Color color)
 {
     PowerUp p;
@@ -69,8 +64,7 @@ sf::Uint8 Entities::fadeAlpha(float t, float duration)
     return static_cast<sf::Uint8>(255.f * a);
 }
 
-
-// Actualiza efectos y borra los que hayan terminado
+¡
 void Entities::updateBreakEffects(std::vector<BreakEffect>& effects, float dt)
 {
     for (std::size_t i = 0; i < effects.size(); )
@@ -88,7 +82,6 @@ void Entities::updateBreakEffects(std::vector<BreakEffect>& effects, float dt)
     }
 }
 
-// Dibuja todos los efectos activos
 void Entities::drawBreakEffects(sf::RenderTarget& rt, const std::vector<BreakEffect>& effects)
 {
     for (std::size_t i = 0; i < effects.size(); ++i)

@@ -110,7 +110,7 @@ void Collision::stepBalls(std::vector<Entities::Ball>& balls, float dt, float wi
         const float r = ball.shape.getRadius();
         sf::Vector2f pos = ball.shape.getPosition();
 
-        // Paredes
+        // Walls
         if (pos.x - r < 0.f)
         {
             pos.x = r;
@@ -127,7 +127,6 @@ void Collision::stepBalls(std::vector<Entities::Ball>& balls, float dt, float wi
             if (ball.velocity.y < 0.f) ball.velocity.y = -ball.velocity.y;
         }
 
-        // Se cae
         if (pos.y - r > windowHeight)
         {
             out.ballLost = true;
@@ -147,10 +146,8 @@ void Collision::stepBalls(std::vector<Entities::Ball>& balls, float dt, float wi
             if (push.x != 0.f) ball.velocity.x = -ball.velocity.x;
             if (push.y != 0.f) ball.velocity.y = -ball.velocity.y;
 
-            // Aseguramos que sale hacia arriba (típico Arkanoid)
             if (ball.velocity.y > 0.f) ball.velocity.y = -ball.velocity.y;
 
-            // Efecto por zona de golpe
             const float centerX = pb.left + pb.width / 2.f;
             float rel = (ball.shape.getPosition().x - centerX);
             rel = rel / (pb.width / 2.f);

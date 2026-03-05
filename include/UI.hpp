@@ -29,6 +29,5 @@ private:
 
 	sf::Text makeText(unsigned int size, sf::Color color) const;
 
-	// Draws text centered at (x, y)
 	static void drawText(sf::RenderTarget& rt, sf::Text& t, float x, float y);
 };

@@ -169,7 +169,7 @@ void Game::processEvents()
 	}
 }
 
-// Returns true with a given probability (for power-up drops)
+// Returns true with a given probability
 static bool shouldDropPowerUp(float chance)
 {
 	if (chance <= 0.f) return false;
@@ -214,7 +214,6 @@ void Game::update(float dt)
 	const sf::Color puColor = m_config.getColor("powerups.color", sf::Color::Cyan);
 	const int maxOnScreen = m_config.getInt("powerups.maxOnScreen", 6);
 
-	// Si se ha roto al menos un ladrillo este frame, generamos un efecto (usamos el último)
 	if (step.brokeBrick)
 	{
 		sf::Color color = step.brokeColor;
@@ -237,7 +236,6 @@ void Game::update(float dt)
 	}
 
 	Entities::updateBreakEffects(m_breakEffects, dt);
-
 
 	if (step.collectedPowerUp)
 	{
@@ -271,7 +269,6 @@ void Game::update(float dt)
 			m_balls.push_back(Entities::makeBall(ballRadius, spawnPos, v, ballColor));
 		}
 	}
-
 
 	if (step.ballLost && m_balls.empty())
 	{
